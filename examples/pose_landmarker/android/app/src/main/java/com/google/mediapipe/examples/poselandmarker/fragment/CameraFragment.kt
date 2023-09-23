@@ -46,6 +46,11 @@ import com.google.mediapipe.examples.poselandmarker.databinding.FragmentCameraBi
 import com.google.mediapipe.examples.poselandmarker.network.RetrofitClient
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.vision.core.RunningMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -428,7 +433,12 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                 val jsonString = jsonArray.toString()
                 Log.d("TST_CHECK", "json list: $jsonString")
 
-                makeRemoteApiRequest(correctPointList)
+                //throttleEvent(correctPointList)
+                val textToSpeechString = """
+    Align your ankles: Check that your ankles are stacked over your heels and aligned with your knees and hips. Avoid rolling your ankles inward or outward and engage the muscles around your ankles for stability.
+    Maintain proper shoulder alignment: Roll your shoulders back and down, gently expanding your chest and lifting the front of your shoulder.
+"""
+                textToSpeechPlayer.playText(textToSpeechString)
 
 //                var correctPointResult: CorrectPointResult = CorrectPointResult(correctPointList,
 //                    resultBundle.inputImageHeight,
@@ -449,12 +459,32 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
         }
     }
 
+    private fun throttleEvent(correctPointList: MutableList<Point>) {
+        CoroutineScope(Dispatchers.Default).launch {
+            var lastHandledTime = System.currentTimeMillis()
+            while (isActive) {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastHandledTime >= 5000) {
+                    // Handle the event here
+                    makeRemoteApiRequest(correctPointList)
+
+                    // Update the last handled time
+                    lastHandledTime = currentTime
+                }
+                delay(1000) // Adjust the delay as needed (1 ms here for precision)
+            }
+        }
+    }
+
     private var lastHandledTimestamp: Long = 0
     private fun makeRemoteApiRequest(correctPointList: MutableList<Point>) {
         val currentTime = System.currentTimeMillis()
 
+        Log.d("TST_RESPONSE:", "Throttle check: Current time = $currentTime :: Last Handled: $lastHandledTimestamp")
+
         //throttle so we make network request every 5secs
-        if (currentTime - lastHandledTimestamp >= 5000) {
+        if (currentTime - lastHandledTimestamp >= 50000) {
+        //if (lastHandledTimestamp == null) {
             RetrofitClient.apiService.makeApiRequest(correctPointList).enqueue(object : Callback<String> {
                 override fun onResponse(call: Call<String>, response: Response<String>) {
                     if (response.isSuccessful) {

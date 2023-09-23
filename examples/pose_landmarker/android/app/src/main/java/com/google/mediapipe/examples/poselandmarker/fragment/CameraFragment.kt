@@ -35,15 +35,23 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.Navigation
+import com.google.gson.Gson
+import com.google.mediapipe.examples.poselandmarker.CorrectPointResult
 import com.google.mediapipe.examples.poselandmarker.PoseLandmarkerHelper
 import com.google.mediapipe.examples.poselandmarker.MainViewModel
+import com.google.mediapipe.examples.poselandmarker.Point
 import com.google.mediapipe.examples.poselandmarker.R
 import com.google.mediapipe.examples.poselandmarker.databinding.FragmentCameraBinding
+import com.google.mediapipe.examples.poselandmarker.network.RetrofitClient
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.vision.core.RunningMode
+import retrofit2.Call
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import retrofit2.Callback
+import retrofit2.Response
 
 class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
@@ -392,10 +400,67 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                     RunningMode.LIVE_STREAM
                 )
 
+                var correctResult: List<List<NormalizedLandmark>> = resultBundle.results
+                                                                        .first().landmarks()
+
+                var correctPointList: MutableList<Point> = mutableListOf() //List<CorrectPoint>
+                correctResult.forEach {
+                    Log.d("TST", "Points: $it")
+                    it.forEach { some ->
+                        Log.d("TST", "LandMark: $some")
+                        correctPointList.add(Point(some.x() , some.y() , some.z()))
+                    }
+                }
+
+
+                correctPointList.forEach {
+                    Log.d("TST_CORRECT", "Correct: $it")
+                }
+
+                val gson = Gson()
+
+// Convert the list to JSON
+                val jsonArray = gson.toJsonTree(correctPointList).asJsonArray
+                val jsonString = jsonArray.toString()
+                Log.d("TST_CHECK", "json list: $jsonString")
+
+                makeRemoteApiRequest(correctPointList)
+
+                var correctPointResult: CorrectPointResult = CorrectPointResult(correctPointList,
+                    resultBundle.inputImageHeight,
+                    resultBundle.inputImageWidth,
+                    RunningMode.LIVE_STREAM)
+
+
+                fragmentCameraBinding.overlay.setResults(
+                    resultBundle.results.first(),
+                    resultBundle.inputImageHeight,
+                    resultBundle.inputImageWidth,
+                    RunningMode.LIVE_STREAM
+                )
+
                 // Force a redraw
                 fragmentCameraBinding.overlay.invalidate()
             }
         }
+    }
+
+    private fun makeRemoteApiRequest(correctPointList: MutableList<Point>) {
+        RetrofitClient.apiService.makeApiRequest(correctPointList).enqueue(object : Callback<String> {
+            override fun onResponse(call: Call<String>, response: Response<String>) {
+                if (response.isSuccessful) {
+                    val responseBody = response.body()
+                    Log.d("TST_RESPONSE:", "Response body: $responseBody")
+                    // Handle the successful response here
+                } else {
+                    // Handle the error response here
+                }
+            }
+
+            override fun onFailure(call: Call<String>, t: Throwable) {
+                // Handle network failures here
+            }
+        })
     }
 
     override fun onError(error: String, errorCode: Int) {

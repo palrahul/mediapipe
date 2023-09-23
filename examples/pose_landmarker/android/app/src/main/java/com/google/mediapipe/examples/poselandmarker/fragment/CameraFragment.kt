@@ -44,6 +44,7 @@ import com.google.mediapipe.examples.poselandmarker.Point
 import com.google.mediapipe.examples.poselandmarker.R
 import com.google.mediapipe.examples.poselandmarker.TextToSpeechPlayer
 import com.google.mediapipe.examples.poselandmarker.databinding.FragmentCameraBinding
+import com.google.mediapipe.examples.poselandmarker.network.PoseRequest
 import com.google.mediapipe.examples.poselandmarker.network.RetrofitClient
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -416,7 +417,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
                 var correctPointList: MutableList<Point> = mutableListOf() //List<CorrectPoint>
                 correctResult.forEach {
-                    Log.d("TST", "Points: $it")
+                    //Log.d("TST", "Points: $it")
                     it.forEach { some ->
                         //Log.d("TST", "LandMark: $some")
                         correctPointList.add(Point(some.x() , some.y() , some.z()))
@@ -463,13 +464,14 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             delay(2000L) // Simulate an IO-bound operation (2 seconds delay)
 
             // Switch to the main dispatcher to call the function
-            launch(Dispatchers.Main) {
-                val textToSpeechString = """
-Align your ankles: Check that your ankles are stacked over your heels and aligned with your knees and hips. Avoid rolling your ankles inward or outward and engage the muscles around your ankles for stability.
-Maintain proper shoulder alignment: Roll your shoulders back and down, gently expanding your chest and lifting the front of your shoulder.
-"""
-                textToSpeechPlayer.playText(textToSpeechString)
-            }
+//            launch(Dispatchers.Main) {
+//                val textToSpeechString = """
+//Align your ankles: Check that your ankles are stacked over your heels and aligned with your knees and hips. Avoid rolling your ankles inward or outward and engage the muscles around your ankles for stability.
+//Maintain proper shoulder alignment: Roll your shoulders back and down, gently expanding your chest and lifting the front of your shoulder.
+//"""
+//                textToSpeechPlayer.playText(textToSpeechString)
+//            }
+            makeRemoteApiRequest(correctPointList)
         }
     }
 
@@ -490,16 +492,18 @@ Maintain proper shoulder alignment: Roll your shoulders back and down, gently ex
         }
     }
 
-    private var lastHandledTimestamp: Long = 0
+    private var lastHandledTimestamp: Long = 0L
+    private var makeOnce: Boolean = true
     private fun makeRemoteApiRequest(correctPointList: MutableList<Point>) {
         val currentTime = System.currentTimeMillis()
 
-        Log.d("TST_RESPONSE:", "Throttle check: Current time = $currentTime :: Last Handled: $lastHandledTimestamp")
-
+        //Log.d("TST_RESPONSE:", "Throttle check: Current time = $currentTime :: Last Handled: $lastHandledTimestamp")
         //throttle so we make network request every 5secs
-        if (currentTime - lastHandledTimestamp >= 50000) {
-        //if (lastHandledTimestamp == null) {
-            RetrofitClient.apiService.makeApiRequest(correctPointList).enqueue(object : Callback<String> {
+        //if (currentTime - lastHandledTimestamp >= 50000) {
+        if (makeOnce) {
+            Log.d("TST_RESPONSE:", "Sending REQ")
+            makeOnce = false
+            RetrofitClient.apiService.makeApiRequest(PoseRequest(correctPointList)).enqueue(object : Callback<String> {
                 override fun onResponse(call: Call<String>, response: Response<String>) {
                     if (response.isSuccessful) {
                         lastHandledTimestamp = System.currentTimeMillis()

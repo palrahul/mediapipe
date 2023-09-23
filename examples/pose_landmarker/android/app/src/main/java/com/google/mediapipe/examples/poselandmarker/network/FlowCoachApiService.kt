@@ -5,8 +5,9 @@ import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.POST
 
-interface FlowCoachApiService {
-    @POST("checkFlow") // Define the endpoint path
-    fun makeApiRequest(@Body requestBody: List<Point>): Call<String>
+data class PoseRequest(val pose: List<Point>)
 
+interface FlowCoachApiService {
+    @POST("/") // Define the endpoint path
+    fun makeApiRequest(@Body poseRequest: PoseRequest): Call<String>
 }

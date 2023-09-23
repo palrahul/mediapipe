@@ -62,8 +62,6 @@ class TextToSpeechPlayer(private val context: Context) {
 
     }
 
-    
-
     fun shutdown() {
         textToSpeech?.stop()
         textToSpeech?.shutdown()

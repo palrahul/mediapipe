@@ -34,6 +34,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.Navigation
 import com.google.gson.Gson
 import com.google.mediapipe.examples.poselandmarker.CorrectPointResult
@@ -51,6 +52,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import retrofit2.Call
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -434,17 +436,12 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                 Log.d("TST_CHECK", "json list: $jsonString")
 
                 //throttleEvent(correctPointList)
-                val textToSpeechString = """
-    Align your ankles: Check that your ankles are stacked over your heels and aligned with your knees and hips. Avoid rolling your ankles inward or outward and engage the muscles around your ankles for stability.
-    Maintain proper shoulder alignment: Roll your shoulders back and down, gently expanding your chest and lifting the front of your shoulder.
-"""
-                textToSpeechPlayer.playText(textToSpeechString)
 
 //                var correctPointResult: CorrectPointResult = CorrectPointResult(correctPointList,
 //                    resultBundle.inputImageHeight,
 //                    resultBundle.inputImageWidth,
 //                    RunningMode.LIVE_STREAM)
-
+                delayStart(correctPointList)
 
                 fragmentCameraBinding.overlay.setResults(
                     resultBundle.results.first(),
@@ -455,6 +452,23 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
                 // Force a redraw
                 fragmentCameraBinding.overlay.invalidate()
+            }
+        }
+    }
+
+    fun delayStart(correctPointList: MutableList<Point>) {
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            // Perform some IO-bound work here (e.g., network request)
+            delay(2000L) // Simulate an IO-bound operation (2 seconds delay)
+
+            // Switch to the main dispatcher to call the function
+            launch(Dispatchers.Main) {
+                val textToSpeechString = """
+Align your ankles: Check that your ankles are stacked over your heels and aligned with your knees and hips. Avoid rolling your ankles inward or outward and engage the muscles around your ankles for stability.
+Maintain proper shoulder alignment: Roll your shoulders back and down, gently expanding your chest and lifting the front of your shoulder.
+"""
+                textToSpeechPlayer.playText(textToSpeechString)
             }
         }
     }

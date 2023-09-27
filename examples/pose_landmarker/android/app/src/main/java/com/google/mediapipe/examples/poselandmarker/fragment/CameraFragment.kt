@@ -434,7 +434,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 // Convert the list to JSON
                 val jsonArray = gson.toJsonTree(correctPointList).asJsonArray
                 val jsonString = jsonArray.toString()
-                Log.d("TST_CHECK", "json list: $jsonString")
+                //Log.d("TST_CHECK", "json list: $jsonString")
 
                 //throttleEvent(correctPointList)
 
@@ -442,7 +442,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 //                    resultBundle.inputImageHeight,
 //                    resultBundle.inputImageWidth,
 //                    RunningMode.LIVE_STREAM)
-                delayStart(correctPointList)
+                makeRemoteApiRequest(correctPointList)
 
                 fragmentCameraBinding.overlay.setResults(
                     resultBundle.results.first(),
